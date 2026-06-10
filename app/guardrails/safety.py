@@ -9,6 +9,7 @@ Two-stage safety check:
 
 import re
 from app.llm import fast_llm
+from app.logging.logger import logger
 
 _BLOCK_PATTERNS = [
     r"\bhack(ing)?\b",
@@ -55,7 +56,7 @@ def check_guardrails(query: str):
     except Exception:
         # If the LLM is unavailable, fail open (don't block legitimate queries)
         return True, ""
-
+    logger.info(f"INJECTION CHECK -> {response}")
     if "yes" in response:
         return False, "Query blocked due to potential prompt injection."
 
