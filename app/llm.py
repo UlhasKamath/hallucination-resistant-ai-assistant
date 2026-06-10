@@ -5,7 +5,7 @@ from app.config import LLM_MODEL
 llm = ChatOllama(
     model=LLM_MODEL,
     temperature=0,
-    num_predict=512,
+    num_predict=600,
     keep_alive=-1,
 )
 
@@ -13,6 +13,6 @@ llm = ChatOllama(
 fast_llm = ChatOllama(
     model=LLM_MODEL,
     temperature=0,
-    num_predict=324,
+    num_predict=400,
     keep_alive=-1,
 )
