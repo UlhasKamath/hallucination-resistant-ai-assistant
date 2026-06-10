@@ -62,9 +62,9 @@ def critic_node(state):
     context = state.get("retrieved_chunks", "")
     retry   = state.get("retry_count", 0)
 
-    if retry >= 1 or not context:
+    if not context:
         return {"is_grounded": True, "retry_count": retry}
-
+    
     _HONEST_REFUSALS = [
         "do not contain enough information", "could not find relevant information",
         "not enough information", "cannot answer", "no information",
@@ -83,5 +83,8 @@ def critic_node(state):
 
     if not grounded:
         logger.warning(f"CRITIC -> not grounded, retry {retry + 1}")
+        if retry >= 1:
+            state["answer"] = "The retrieved documents do not contain enough information to answer this question."
+            return {"is_grounded": True, "retry_count": retry + 1}
 
     return {"is_grounded": grounded, "retry_count": retry + (0 if grounded else 1)}
