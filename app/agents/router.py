@@ -51,9 +51,10 @@ def _web_failed(answer: str) -> bool:
 
 
 def _rag_is_empty(answer: str) -> bool:
-    if not answer or len(answer.strip()) < 80:
-        return any(s in answer.lower() for s in _RAG_EMPTY_SIGNALS)
-    return False
+    if not answer:
+        return True
+    return any(s in answer.lower() for s in _RAG_EMPTY_SIGNALS)
+
 
 
 def _file_context_answer(query: str, file_ctx: Dict[str, str]) -> str:
@@ -148,7 +149,7 @@ def route_and_run(
     # Build conversation context for classify + rewrite
     conversation_context = "\n".join(
         f"{m['role'].upper()}: {m['content']}"
-        for m in session_messages[-6:]
+        for m in session_messages[:-1][-6:]
     )
 
     # Conversation history in LLM message format - passed to agents for multi-turn memory.
