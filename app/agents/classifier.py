@@ -5,7 +5,7 @@ import numpy as np
 from typing import Literal
 from langchain_ollama import OllamaEmbeddings
 from app.config import EMBED_MODEL
-from app.storage.redis_cache import get_cache, set_cache
+# from app.storage.redis_cache import get_cache, set_cache
 from app.logging.logger import logger
 
 AgentLabel = Literal["sql", "coding", "web", "knowledge", "rag", "file", "math"]
@@ -143,27 +143,26 @@ def _cosine_sim(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-9))
 
 
-def _embed_classify(query: str) -> AgentLabel:
-    """Embed query, compare against all anchor groups, return best label."""
+def _embed_classify(query: str) -> tuple[AgentLabel, dict[str, float]]:
     q_vec = np.array(_embedder.embed_query(query), dtype=np.float32)
-    scores: dict[str, float] = {}
+    scores = {}
     for label, anchor_vecs in _ANCHOR_EMBEDDINGS.items():
         sims = [_cosine_sim(q_vec, a) for a in anchor_vecs]
         scores[label] = float(np.mean(sorted(sims, reverse=True)[:3]))
     best = max(scores, key=lambda l: scores[l])
     logger.info(f"CLASSIFIER -> embed scores: { {l: round(s, 3) for l, s in sorted(scores.items(), key=lambda x: -x[1])} }")
-    return best 
+    return best, scores
 
 
 # Cache helpers
-_CACHE_PREFIX = "clf:"
+# _CACHE_PREFIX = "clf:"
 
-def _clf_cache_get(key: str) -> AgentLabel | None:
-    result = get_cache(_CACHE_PREFIX + key)
-    return result["result"] if result else None
+# def _clf_cache_get(key: str) -> AgentLabel | None:
+#     result = get_cache(_CACHE_PREFIX + key)
+#     return result["result"] if result else None
 
-def _clf_cache_set(key: str, label: AgentLabel) -> None:
-    set_cache(_CACHE_PREFIX + key, {"result": label})
+# def _clf_cache_set(key: str, label: AgentLabel) -> None:
+#     set_cache(_CACHE_PREFIX + key, {"result": label})
 
 
 # Public API
@@ -195,18 +194,17 @@ def classify_query(
         return "web"
 
     # Cache check
-    cache_key = query + ("|files" if has_files else "") + "|" + conversation_context[-200:]
-    cached = _clf_cache_get(cache_key)
-    if cached:
-        logger.info(f"CLASSIFIER -> CACHE HIT: {cached}")
-        return cached
+    # cache_key = query + ("|files" if has_files else "") + "|" + conversation_context[-200:]
+    # cached = _clf_cache_get(cache_key)
+    # if cached:
+    #     logger.info(f"CLASSIFIER -> CACHE HIT: {cached}")
+    #     return cached
 
-    label = _embed_classify(query)
+    label, scores = _embed_classify(query)
 
-    # file label requires files to be present
     if label == "file" and not has_files:
-        label = "rag"
+        label = max((l for l in scores if l != "file"), key=lambda l: scores[l])
 
     logger.info(f"CLASSIFIER -> '{label}' ({round(time.time()-t0, 3)}s)")
-    _clf_cache_set(cache_key, label)
+    # _clf_cache_set(cache_key, label)
     return label
