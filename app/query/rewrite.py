@@ -10,8 +10,9 @@ def rewrite_query(query: str) -> str:
 
         Rules:
         - Preserve the user's intent exactly.
+        - Preserve all named entities exactly.
         - Do not introduce new topics, people, events, products, teams, or facts.
-        - Do not answer the query.
+        - Do not answer the query. Never broaden the query.
         - If the query is already clear, return it unchanged.
         - Return only the rewritten query.
 
@@ -35,6 +36,8 @@ def rewrite_query_with_context(query: str, conversation_context: str) -> str:
     if not conversation_context.strip():
         return query
 
+    
+
     today = date.today().strftime("%B %d, %Y")
     prompt = (
         f"Today is {today}. Rewrite the follow-up into a fully self-contained, "
@@ -49,9 +52,6 @@ def rewrite_query_with_context(query: str, conversation_context: str) -> str:
         "Conversation: USER: Explain Python decorators ASSISTANT: A decorator wraps a function.\n"
         "Follow-up: Show a real example\n"
         "Rewritten: Show a real Python decorator example\n\n"
-        "Conversation: USER: Latest updates at the World Cup? ASSISTANT: France beat...\n"
-        "Follow-up: Who are they playing next?\n"
-        "Rewritten: Which team is France playing against next?\n\n"
         f"Conversation:\n{conversation_context}\n\n"
         f"Follow-up: {query}\n"
         "Rewritten:"
